@@ -1,5 +1,34 @@
 import "./style.css";
 
+// Step 5
+
+class MarkerLine {
+  private points: Array<{ x: number; y: number }> = [];
+
+  constructor(initialPoint: { x: number; y: number }) {
+    this.points.push(initialPoint);
+  }
+
+  drag(x: number, y: number) {
+    // Add a point to the line as the user drags the cursor
+    this.points.push({ x, y });
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    // Display the line on the canvas
+    if (this.points.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(this.points[0].x, this.points[0].y);
+
+      for (const point of this.points) {
+        ctx.lineTo(point.x, point.y);
+      }
+
+      ctx.stroke();
+    }
+  }
+}
+
 const app: HTMLDivElement = document.querySelector("#app")!;
 
 // Step 0
@@ -23,6 +52,7 @@ canvas.height = 256;
 canvas.style.border = "1px solid black"; // Thin black border
 canvas.style.borderRadius = "8px"; // Optional rounded corners
 canvas.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)"; // Optional drop shadow
+canvas.style.backgroundColor = "white"; // White background
 
 // Append the canvas to the app container
 app.append(canvas);
@@ -35,6 +65,9 @@ const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
 
 let isDrawing: boolean = false;
 
+// Save the user's marker lines into an array
+const markerLines: MarkerLine[] = [];
+
 // Allow the user to draw on the canvas using mouse events and save points
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", draw);
@@ -42,72 +75,59 @@ canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseout", stopDrawing);
 
 function startDrawing(e: MouseEvent) {
-    isDrawing = true;
-    draw(e); // Start drawing immediately
+  isDrawing = true;
+
+  const x = e.clientX - canvas.offsetLeft;
+  const y = e.clientY - canvas.offsetTop;
+
+  // Create a new MarkerLine and add it to the array
+  const newMarkerLine = new MarkerLine({ x, y });
+  markerLines.push(newMarkerLine);
 }
-  
+
 function draw(e: MouseEvent) {
-    if (!isDrawing || !ctx) return;
-  
-    const x = e.clientX - canvas.offsetLeft;
-    const y = e.clientY - canvas.offsetTop;
-  
-    // Save the point to the array
-    drawingPoints[drawingPoints.length - 1].push({ x, y });
-  
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "black";
-  
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+  if (!isDrawing || !ctx) return;
+
+  const x = e.clientX - canvas.offsetLeft;
+  const y = e.clientY - canvas.offsetTop;
+
+  // Drag the last marker line as the user moves the cursor
+  markerLines[markerLines.length - 1].drag(x, y);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Redraw all marker lines
+  for (const line of markerLines) {
+    line.display(ctx);
+  }
 }
-  
+
 function stopDrawing() {
   isDrawing = false;
-  ctx?.beginPath();
-  // Start a new array for the next line
-  drawingPoints.push([]);
 }
 
 function clearCanvas() {
   if (!ctx) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawingPoints.length = 0; // Clear the array of drawing points
+  markerLines.length = 0; // Clear the array of marker lines
   canvas.dispatchEvent(new Event("drawing-changed")); // Dispatch the "drawing-changed" event
 }
 
 // Step 3
 
-// Save the user's mouse positions into an array of arrays of points
-const drawingPoints: Array<Array<{ x: number; y: number }>> = [];
-
 // Add an observer for the "drawing-changed" event
 canvas.addEventListener("drawing-changed", updateCanvas);
 
 function updateCanvas() {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-    // Clear undo and redo stacks
-    undoStack.length = 0;
-    redoStack.length = 0;
-  
-    // Redraw the lines using the saved drawing points
-    for (const line of drawingPoints) {
-      ctx.beginPath();
-      ctx.moveTo(line[0].x, line[0].y);
-  
-      for (const point of line) {
-        ctx.lineTo(point.x, point.y);
-      }
-  
-      ctx.stroke();
-    }
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Redraw all marker lines
+  for (const line of markerLines) {
+    line.display(ctx);
+  }
 }
-  
+
 // Allow the user to draw on the canvas using mouse events and save points
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", draw);
@@ -138,30 +158,32 @@ redoButton.textContent = "Redo";
 redoButton.addEventListener("click", redoDrawing);
 buttonsContainer.append(redoButton);
 
-const undoStack: Array<Array<{ x: number; y: number }>> = [];
-const redoStack: Array<Array<{ x: number; y: number }>> = [];
+const undoStack: MarkerLine[] = [];
+const redoStack: MarkerLine[] = [];
 
 function undoDrawing() {
-    if (!isDrawing && drawingPoints.length > 0) {
-      const undoneLine = drawingPoints.pop()!;
-      undoStack.push([...undoneLine]); // Copy the undone line
-      redoStack.length = 0; // Clear redo stack when performing undo
-  
-      // Update the canvas immediately after popping from drawingPoints
-      updateCanvas();
-  
-      // Dispatch the "drawing-changed" event
-      canvas.dispatchEvent(new Event("drawing-changed"));
-    }
+  if (!isDrawing && markerLines.length > 0) {
+    const undoneLine = markerLines.pop()!;
+    undoStack.push(undoneLine); // Copy the undone line to undo stack
+
+    // Update the canvas immediately after popping from markerLines
+    updateCanvas();
+
+    // Dispatch the "drawing-changed" event
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
 }
-  
+
+// Redo button is not
 function redoDrawing() {
-    if (undoStack.length > 0) {
-      const redoneLine = undoStack.pop()!;
-      drawingPoints.push([...redoneLine]); // Copy the redone line
-      redoStack.push([...redoneLine]); // Add to redo stack
-  
-      // Dispatch the "drawing-changed" event
-      canvas.dispatchEvent(new Event("drawing-changed"));
-    }
-} 
+  if (redoStack.length > 0) {
+    const redoneLine = redoStack.pop()!;
+    markerLines.push(redoneLine); // Add the redone line back to markerLines
+
+    // Update the canvas immediately after pushing to markerLines
+    updateCanvas();
+
+    // Dispatch the "drawing-changed" event
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+}

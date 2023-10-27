@@ -1,12 +1,13 @@
 import "./style.css";
 
-// Step 5
-
+// Modified the MarkerLine class to accept a thickness parameter
 class MarkerLine {
   private points: Array<{ x: number; y: number }> = [];
+  private thickness: number;
 
-  constructor(initialPoint: { x: number; y: number }) {
+  constructor(initialPoint: { x: number; y: number }, thickness: number) {
     this.points.push(initialPoint);
+    this.thickness = thickness;
   }
 
   drag(x: number, y: number) {
@@ -19,6 +20,9 @@ class MarkerLine {
     if (this.points.length > 1) {
       ctx.beginPath();
       ctx.moveTo(this.points[0].x, this.points[0].y);
+
+      // Set the line thickness based on the provided thickness
+      ctx.lineWidth = this.thickness;
 
       for (const point of this.points) {
         ctx.lineTo(point.x, point.y);
@@ -81,7 +85,7 @@ function startDrawing(e: MouseEvent) {
   const y = e.clientY - canvas.offsetTop;
 
   // Create a new MarkerLine and add it to the array
-  const newMarkerLine = new MarkerLine({ x, y });
+  const newMarkerLine = new MarkerLine({ x, y }, currentMarkerThickness);
   markerLines.push(newMarkerLine);
 }
 
@@ -96,7 +100,7 @@ function draw(e: MouseEvent) {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Redraw all marker lines
+  // Redraw all marker lines with the currentMarkerThickness
   for (const line of markerLines) {
     line.display(ctx);
   }
@@ -127,12 +131,6 @@ function updateCanvas() {
     line.display(ctx);
   }
 }
-
-// Allow the user to draw on the canvas using mouse events and save points
-canvas.addEventListener("mousedown", startDrawing);
-canvas.addEventListener("mousemove", draw);
-canvas.addEventListener("mouseup", stopDrawing);
-canvas.addEventListener("mouseout", stopDrawing);
 
 // Step 4
 
@@ -174,16 +172,43 @@ function undoDrawing() {
   }
 }
 
-// Redo button is not
 function redoDrawing() {
-  if (redoStack.length > 0) {
-    const redoneLine = redoStack.pop()!;
-    markerLines.push(redoneLine); // Add the redone line back to markerLines
+  if (undoStack.length > 0) {
+    const redoneLine = undoStack.pop()!;
+
+    markerLines.push(redoneLine);
 
     // Update the canvas immediately after pushing to markerLines
     updateCanvas();
+  }
+}
 
-    // Dispatch the "drawing-changed" event
-    canvas.dispatchEvent(new Event("drawing-changed"));
+// Step 5
+
+// Add a "thin" marker button
+const thinButton: HTMLButtonElement = document.createElement("button");
+thinButton.textContent = "Thin";
+thinButton.addEventListener("click", () => setMarkerThickness(1));
+buttonsContainer.append(thinButton);
+
+// Add a "thick" marker button
+const thickButton: HTMLButtonElement = document.createElement("button");
+thickButton.textContent = "Thick";
+thickButton.addEventListener("click", () => setMarkerThickness(2));
+buttonsContainer.append(thickButton);
+
+// Variable to store the current marker thickness
+let currentMarkerThickness: 1 | 2 = 1;
+
+function setMarkerThickness(thickness: 1 | 2) {
+  currentMarkerThickness = thickness;
+
+  // Optionally, add a class to indicate the selected tool
+  thinButton.classList.remove("selectedTool");
+  thickButton.classList.remove("selectedTool");
+  if (thickness === 1) {
+    thinButton.classList.add("selectedTool");
+  } else {
+    thickButton.classList.add("selectedTool");
   }
 }

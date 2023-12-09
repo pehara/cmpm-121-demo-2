@@ -131,11 +131,10 @@ function startDrawing(e: MouseEvent) {
 // Function to draw sticker preview separately
 function drawStickerPreview(x: number, y: number, sticker: string) {
     if (stickerPreviewCommand && isStickerButtonClicked) {
+        console.log("Sticker:", sticker); // Add this line to log the sticker value
         stickerPreviewCommand.execute(x, y);
     }
 }
-
-
 
 // Function to handle drawing on the canvas
 function draw(e: MouseEvent) {
@@ -399,6 +398,9 @@ class IncludeStickerCommand {
     }
 
     execute(cursorPosition: { x: number; y: number }) {
+        // Log the position to the console
+        console.log("Position:", this.position);
+
         // Store the drawn sticker as an instance of the Sticker class
         drawnStickers.add(new Sticker(cursorPosition.x, cursorPosition.y, this.sticker));
 
@@ -420,6 +422,7 @@ class IncludeStickerCommand {
         }
     }
 }
+
 
 
 // Function to create custom sticker at cursor position

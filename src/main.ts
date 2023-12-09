@@ -1,132 +1,111 @@
+// Import the CSS file for styling
 import "./style.css";
 
+// Constants for better readability
 const ZERO = 0;
 const ONE = 1;
 
-// Create a new class for stickers
+// Class definition for stickers
 class Sticker {
     constructor(private x: number, private y: number, private sticker: string) {}
 
+    // Display method to draw the sticker on the canvas
     display(ctx: CanvasRenderingContext2D) {
         // Draw the sticker on the canvas with a smaller font size
-        ctx.font = '24px Arial'; // Change the font size to your desired value
+        ctx.font = "24px Arial"; // Change the font size to your desired value
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(this.sticker, this.x, this.y);
     }
 }
 
-// Modify the Set to store instances of the Sticker class
-const drawnStickers: Set<Sticker> = new Set();
+// Set to store instances of the Sticker class
+const drawnStickers: Set<Sticker> = new Set<Sticker>();
 
-// Modified the MarkerLine class to accept a thickness parameter
+// Modified MarkerLine class with thickness parameter
+// Updated MarkerLine class with thickness and sticker properties
 class MarkerLine {
-	private points: { x: number; y: number }[] = [];
-	private thickness: number;
+    private points: { x: number; y: number }[] = [];
+    private thickness: number;
+    private sticker: string; // Add the sticker property
 
-	constructor(initialPoint: { x: number; y: number }, thickness: number) {
-		this.points.push(initialPoint);
-		this.thickness = thickness;
-	}
+    constructor(initialPoint: { x: number; y: number }, thickness: number, sticker: string) {
+        this.points.push(initialPoint);
+        this.thickness = thickness;
+        this.sticker = sticker;
+    }
 
-	drag(x: number, y: number) {
-		// Add a point to the line as the user drags the cursor
-		this.points.push({ x, y });
-	}
+    // Add a point to the line as the user drags the cursor
+    drag(x: number, y: number) {
+        this.points.push({ x, y });
+    }
 
-	display(ctx: CanvasRenderingContext2D) {
-		// Display the line on the canvas
-		if (this.points.length > ONE) {
-		ctx.beginPath();
-		ctx.moveTo(this.points[ZERO].x, this.points[ZERO].y);
+    // Display the line on the canvas
+    display(ctx: CanvasRenderingContext2D) {
+        if (this.points.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(this.points[0].x, this.points[0].y);
 
-		// Set the line thickness based on the provided thickness
-		ctx.lineWidth = this.thickness;
+            // Set the line thickness based on the provided thickness
+            ctx.lineWidth = this.thickness;
 
-		for (const point of this.points) {
-			ctx.lineTo(point.x, point.y);
-		}
+            for (const point of this.points) {
+                ctx.lineTo(point.x, point.y);
+            }
 
-		ctx.stroke();
-		}
-	}
+            ctx.stroke();
+        }
+    }
 }
 
-const app: HTMLDivElement = document.querySelector("#app")!;
 
+// Select the app container and set initial constants
+const app: HTMLDivElement = document.querySelector("#app")!;
 const INITIAL_MARKER_LINES_LENGTH = 0;
 const THIN_MARKER_THICKNESS = 1;
 const THICK_MARKER_THICKNESS = 2;
 
-// Step 0
-
+// Step 0: Set the game name and update the document title
 const gameName = "drawing hehe";
-
 document.title = gameName;
 
+// Create and append the header element
 const header = document.createElement("h1");
 header.innerHTML = gameName;
 app.append(header);
 
-// Step 1
-
-// Adding Canvas
+// Step 1: Create and style the canvas
 const canvas: HTMLCanvasElement = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
-
-// Applying CSS styling to the canvas
 canvas.style.border = "1px solid black"; // Thin black border
 canvas.style.borderRadius = "8px"; // Optional rounded corners
 canvas.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)"; // Optional drop shadow
 canvas.style.backgroundColor = "white"; // White background
-
-// Append the canvas to the app container
 app.append(canvas);
 
-// Step 2
-
-// Allow the user to draw on the canvas using mouse events
-
+// Step 2: Allow the user to draw on the canvas using mouse events
 const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
-
 let isDrawing = false;
-
-// Save the user's marker lines into an array
 const markerLines: MarkerLine[] = [];
 
-// Step 6
-// Constants for marker thickness
-// const THIN_MARKER = 1 as const;
-// const THICK_MARKER = 2 as const;
-
+// Step 6: Constants for marker thickness
 const THIN_MARKER = 1 as const;
 const THICK_MARKER = 2 as const;
-
-// Variable to store the current marker thickness
 let currentMarkerThickness: typeof THIN_MARKER | typeof THICK_MARKER = THIN_MARKER;
-
 let selectedSticker: string | null = null;
-
-// Variable to track whether the sticker button has been clicked
 let isStickerButtonClicked = false;
-
-//const stickerPreviewCommand: ToolPreviewCommand | null = null;
-
-// Variable to store the tool preview
 let toolPreview: MarkerLine | null = null;
-
-// Variable to store the tool preview command
 let stickerPreviewCommand: ToolPreviewCommand | null = null;
 
-// Allow the user to draw on the canvas using mouse events and save points
+// Event listeners for drawing
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", draw);
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseout", stopDrawing);
-canvas.addEventListener("mousemove", handleToolMove); // New event listener for tool preview
+canvas.addEventListener("mousemove", handleToolMove);
 
-
+// Function to initiate drawing
 function startDrawing(e: MouseEvent) {
     isDrawing = true;
 
@@ -134,18 +113,19 @@ function startDrawing(e: MouseEvent) {
     const y = e.clientY - canvas.offsetTop;
 
     // Create a new MarkerLine and add it to the array
-    const newMarkerLine = new MarkerLine({ x, y }, currentMarkerThickness);
+    const newMarkerLine = new MarkerLine({ x, y }, currentMarkerThickness, ""); // Add an empty string for the sticker
     markerLines.push(newMarkerLine);
 }
 
-// Add a function to draw sticker preview separately
+
+// Function to draw sticker preview separately
 function drawStickerPreview(x: number, y: number, sticker: string) {
     if (stickerPreviewCommand && isStickerButtonClicked) {
-        stickerPreviewCommand.execute(x, y, ZERO, sticker);
+        stickerPreviewCommand.execute({ x, y });
     }
 }
 
-// Now you can use this function in your draw function:
+// Function to handle drawing on the canvas
 function draw(e: MouseEvent) {
     if (!isDrawing || !ctx) return;
     const x = e.clientX - canvas.offsetLeft;
@@ -156,7 +136,8 @@ function draw(e: MouseEvent) {
 		drawStickerPreview(x, y, selectedSticker);
 		
 		// Execute the IncludeStickerCommand at the beginning of drawing
-		const includeStickerCommand = new IncludeStickerCommand(selectedSticker || "★");
+		const includeStickerCommand = new IncludeStickerCommand(selectedSticker || "★", { x: 0, y: 0 });
+includeStickerCommand.execute({ x: 0, y: 0 }); // Pass initial position (it can be adjusted)
 
 		includeStickerCommand.execute({ x, y });
 	
@@ -171,30 +152,28 @@ function draw(e: MouseEvent) {
 
         if (!isDrawing) {
             // Draw the tool preview if the mouse is not down
-            drawToolPreview(x, y, selectedSticker || "");
+			drawToolPreview(x, y, selectedSticker ?? "");
         }
     }
 }
 
-
-
+// Function to stop drawing
 function stopDrawing() {
   isDrawing = false;
 }
 
-function clearCanvas() {
-	if (!ctx) return;
-	ctx.clearRect(ZERO, ZERO, canvas.width, canvas.height);
-	markerLines.length = 0; // Clear the array of marker lines
-	canvas.dispatchEvent(new Event("drawing-changed")); // Dispatch the "drawing-changed" event
-}
+// // Function to clear the canvas
+// function clearCanvas() {
+// 	if (!ctx) return;
+// 	ctx.clearRect(ZERO, ZERO, canvas.width, canvas.height);
+// 	markerLines.length = 0; // Clear the array of marker lines
+// 	canvas.dispatchEvent(new Event("drawing-changed")); // Dispatch the "drawing-changed" event
+// }
 
-// Step 3
-
-// Add an observer for the "drawing-changed" event
+// Step 3: Add an observer for the "drawing-changed" event
 canvas.addEventListener("drawing-changed", updateCanvas);
 
-// Modify the updateCanvas function to handle stickers
+// Function to update the canvas
 function updateCanvas() {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -210,21 +189,17 @@ function updateCanvas() {
     }
 }
 
-// Step 4
-
-// Create a container for the buttons
+// Step 4: Create a container for buttons
 const buttonsContainer: HTMLDivElement = document.createElement("div");
 buttonsContainer.style.marginTop = "10px"; // Adjust margin as needed
 app.append(buttonsContainer);
 
-// Add a "clear" button
+// Step 5: Add clear, undo, and redo buttons
 const clearButton: HTMLButtonElement = document.createElement("button");
 clearButton.textContent = "Clear";
 clearButton.addEventListener("click", clearDrawing);
 buttonsContainer.append(clearButton);
 
-// Step 5
-// Undo and Redo buttons
 const undoButton: HTMLButtonElement = document.createElement("button");
 undoButton.textContent = "Undo";
 undoButton.addEventListener("click", undoDrawing);
@@ -238,6 +213,7 @@ buttonsContainer.append(redoButton);
 const undoStack: (MarkerLine | Sticker)[] = [];
 const redoStack: (MarkerLine | Sticker)[] = [];
 
+// Function to undo the last drawing action
 function undoDrawing() {
     if (!isDrawing && markerLines.length > INITIAL_MARKER_LINES_LENGTH) {
         const undoneLine = markerLines.pop()!;
@@ -253,6 +229,7 @@ function undoDrawing() {
     canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
+// Function to redo the last undone drawing action
 function redoDrawing() {
     if (undoStack.length > INITIAL_MARKER_LINES_LENGTH || redoStack.length > 0) {
         if (undoStack.length > INITIAL_MARKER_LINES_LENGTH) {
@@ -275,6 +252,7 @@ function redoDrawing() {
     }
 }
 
+// Function to clear the canvas
 function clearDrawing() {
     if (!isDrawing) {
         // Clear both marker lines and stickers
@@ -287,9 +265,7 @@ function clearDrawing() {
     }
 }
 
-// Step 6
-
-// Add a "thin" marker button
+// Step 6: Add thin and thick marker buttons
 const thinButton: HTMLButtonElement = document.createElement("button");
 thinButton.textContent = "Thin";
 thinButton.addEventListener("click", () => {
@@ -298,7 +274,6 @@ thinButton.addEventListener("click", () => {
 });
 buttonsContainer.append(thinButton);
 
-// Add a "thick" marker button
 const thickButton: HTMLButtonElement = document.createElement("button");
 thickButton.textContent = "Thick";
 thickButton.addEventListener("click", () => {
@@ -307,10 +282,10 @@ thickButton.addEventListener("click", () => {
 });
 buttonsContainer.append(thickButton);
 
+// Function to set the marker thickness and indicate the selected tool
 function setMarkerThickness(thickness: 1 | 2) {
     currentMarkerThickness = thickness;
 
-    // Indicate the selected tool
     thinButton.classList.remove("selectedTool");
     thickButton.classList.remove("selectedTool");
     if (thickness === ONE) {
@@ -323,35 +298,35 @@ function setMarkerThickness(thickness: 1 | 2) {
     isStickerButtonClicked = false;
 }
 
-
-// Step 7
-
+// Step 7: Function to draw the tool preview
+// Function to draw the tool preview
 function drawToolPreview(x: number, y: number, sticker: string) {
-    // Draw the tool preview using the currentMarkerThickness and sticker
     if (toolPreview) {
         toolPreview.display(ctx!);
     }
-    toolPreview = new MarkerLine({ x, y, sticker }, currentMarkerThickness);
+    toolPreview = new MarkerLine({ x, y }, currentMarkerThickness, sticker);
     toolPreview.display(ctx!);
 }
 
 
+// Updated ToolPreviewCommand class to include the 'sticker' property
 class ToolPreviewCommand {
     constructor(private x: number, private y: number, private sticker: string, private thickness: number) {}
 
+    // Update the execute method to use the class properties
     execute(cursorPosition: { x?: number; y?: number }) {
-        // Draw the tool preview using the currentMarkerThickness and sticker
-        drawToolPreview(cursorPosition.x || 0, cursorPosition.y || 0, this.sticker);
+        const { x = 0, y = 0 } = cursorPosition;
+        drawToolPreview(x, y, this.sticker);
     }
 }
 
+// Function to clear the tool preview
 function clearToolPreview() {
-    // Clear the tool preview
     toolPreview = null;
     updateCanvas();
 }
 
-// Modify the handleToolMove function to use the ToolPreviewCommand
+// Function to handle tool movement
 function handleToolMove(e: MouseEvent) {
     if (!isDrawing) {
         const x = e.clientX - canvas.offsetLeft;
@@ -364,10 +339,7 @@ function handleToolMove(e: MouseEvent) {
     }
 }
 
-
-// Step 7
-
-// Emoji Unicode character codes for the stickers
+// Step 8: Emoji Unicode character codes for stickers
 const stickerCodes = ["😸", "😹", "😻"];
 
 // Create buttons for each sticker and append them to the buttonsContainer
@@ -378,7 +350,7 @@ for (let i = 0; i < stickerCodes.length; i++) {
     buttonsContainer.append(stickerButton);
 }
 
-// Update the handleStickerClick function to set the isStickerButtonClicked variable
+// Function to handle sticker button click
 function handleStickerClick(sticker: string) {
     // Dispatch the "tool-moved" event with the selected sticker as data
     fireEvent("tool-moved", sticker);
@@ -391,8 +363,10 @@ function handleStickerClick(sticker: string) {
 
     // Execute the IncludeStickerCommand with the selected sticker only if the sticker button is clicked
     if (isStickerButtonClicked) {
-        const includeStickerCommand = new IncludeStickerCommand(selectedSticker);
-        includeStickerCommand.execute({ x: 0, y: 0 }); // Pass initial position (it can be adjusted)
+        // Execute the IncludeStickerCommand at the beginning of drawing
+		const includeStickerCommand = new IncludeStickerCommand(selectedSticker || "★", { x: 0, y: 0 });
+		includeStickerCommand.execute({ x: 0, y: 0 }); // Pass initial position (it can be adjusted)
+
     }
 
     // Set isStickerButtonClicked to true when the sticker button is clicked
@@ -400,13 +374,14 @@ function handleStickerClick(sticker: string) {
 }
 
 
+// Class for including stickers as commands
 class IncludeStickerCommand {
     private sticker: string;
-    private initialPosition: { x: number; y: number };
+    private position: { x: number; y: number };
 
-    constructor(sticker: string) {
+    constructor(sticker: string, position: { x: number; y: number }) {
         this.sticker = sticker;
-        this.initialPosition = { x: 0, y: 0 }; // Set an initial position
+        this.position = position;
     }
 
     execute(cursorPosition: { x: number; y: number }) {
@@ -418,32 +393,66 @@ class IncludeStickerCommand {
     }
 
     drag(cursorPosition: { x: number; y: number }) {
-        // Reposition the sticker during drag
-        const deltaX = cursorPosition.x - this.initialPosition.x;
-        const deltaY = cursorPosition.y - this.initialPosition.y;
+		// Check if ctx is not null before using it
+		if (ctx) {
+			// Clear the canvas and redraw all marker lines with the currentMarkerThickness
+			ctx.clearRect(ZERO, ZERO, canvas.width, canvas.height);
+			for (const line of markerLines) {
+				line.display(ctx);
+			}
+	
+			// Draw the sticker at the new position during drag
+			drawSticker(cursorPosition.x, cursorPosition.y, this.sticker);
+		}
+	}
+	
+}
 
-        // Clear the canvas and redraw all marker lines with the currentMarkerThickness
-        ctx!.clearRect(ZERO, ZERO, canvas.width, canvas.height);
-        for (const line of markerLines) {
-            line.display(ctx);
-        }
+// Function to create custom sticker at cursor position
+function createCustomStickerAtCursor(cursorPosition: { x: number; y: number }) {
+    const customText = prompt("Enter your custom sticker text:");
 
-        // Draw the sticker at the new position
-        drawSticker(cursorPosition.x, cursorPosition.y, this.sticker);
+    if (customText !== null && customText.trim() !== "") {
+        // Use the IncludeStickerCommand to add the custom sticker at the cursor position
+        const includeStickerCommand = new IncludeStickerCommand(customText, cursorPosition);
+        includeStickerCommand.execute(cursorPosition);
     }
 }
 
-
 function drawSticker(x: number, y: number, sticker: string) {
     // Draw the sticker on the canvas with a smaller font size
-    ctx!.font = '24px Arial'; // Change the font size to your desired value
+    ctx!.font = "24px Arial"; // Change the font size to your desired value
     ctx!.textAlign = "center";
     ctx!.textBaseline = "middle";
     ctx!.fillText(sticker, x, y);
 }
 
-function fireEvent(eventName: string, data: any) {
-    const event = new CustomEvent(eventName, { detail: data });
+function fireEvent<T>(eventName: string, data: T) {
+    const event = new CustomEvent<T>(eventName, { detail: data });
     document.dispatchEvent(event);
 }
 
+
+// Step 9: Add a button for creating custom stickers
+
+const createCustomStickerButton: HTMLButtonElement = document.createElement("button");
+createCustomStickerButton.textContent = "Create Custom Sticker";
+createCustomStickerButton.addEventListener("click", createCustomSticker);
+buttonsContainer.append(createCustomStickerButton);
+
+// Function to create custom sticker
+function createCustomSticker() {
+    const customText = prompt("Enter your custom sticker text:");
+
+    if (customText !== null && customText.trim() !== "") {
+        // // Use the IncludeStickerCommand to add the custom sticker
+        // const includeStickerCommand = new IncludeStickerCommand(customText);
+		// includeStickerCommand.execute({ x: 100, y: 100 }); // Initial position (adjust as needed)
+		// // Event listener for canvas click to create custom sticker
+		canvas.addEventListener("click", (e) => {
+			const x = e.clientX - canvas.offsetLeft;
+			const y = e.clientY - canvas.offsetTop;
+			createCustomStickerAtCursor({ x, y });
+		});
+    }
+}

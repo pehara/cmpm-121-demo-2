@@ -25,37 +25,47 @@ const drawnStickers: Set<Sticker> = new Set<Sticker>();
 // Modified MarkerLine class with thickness parameter
 // Updated MarkerLine class with thickness and sticker properties
 class MarkerLine {
-    private points: { x: number; y: number }[] = [];
-    private thickness: number;
-    private sticker: string; // Add the sticker property
+	private points: { x: number; y: number }[] = [];
+	private thickness: number;
+	private sticker: string; // Add the sticker property
 
-    constructor(initialPoint: { x: number; y: number }, thickness: number, sticker: string) {
-        this.points.push(initialPoint);
-        this.thickness = thickness;
-        this.sticker = sticker;
-    }
+	constructor(initialPoint: { x: number; y: number }, thickness: number, sticker: string) {
+		this.points.push(initialPoint);
+		this.thickness = thickness;
+		this.sticker = sticker;
+	}
 
-    // Add a point to the line as the user drags the cursor
-    drag(x: number, y: number) {
-        this.points.push({ x, y });
-    }
+	// Add a point to the line as the user drags the cursor
+	drag(x: number, y: number) {
+		this.points.push({ x, y });
+	}
 
-    // Display the line on the canvas
-    display(ctx: CanvasRenderingContext2D) {
-        if (this.points.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(this.points[0].x, this.points[0].y);
+	// Display the line on the canvas
+	display(ctx: CanvasRenderingContext2D) {
+		if (this.points.length > 1) {
+			ctx.beginPath();
+			ctx.moveTo(this.points[0].x, this.points[0].y);
+	
+			// Set the line thickness based on the provided thickness
+			ctx.lineWidth = this.thickness;
+	
+			// Set the line color based on the sticker
+			ctx.strokeStyle = this.stickerColor();
+	
+			for (const point of this.points) {
+				ctx.lineTo(point.x, point.y);
+			}
+	
+			ctx.stroke();
+		}
+	}
 
-            // Set the line thickness based on the provided thickness
-            ctx.lineWidth = this.thickness;
-
-            for (const point of this.points) {
-                ctx.lineTo(point.x, point.y);
-            }
-
-            ctx.stroke();
-        }
-    }
+	// Add a method to determine the line color based on the sticker
+	private stickerColor(): string {
+		// Implement the logic to determine the color based on the sticker
+		// For simplicity, let's say the sticker itself is the color
+		return this.sticker;
+	}
 }
 
 
@@ -121,9 +131,11 @@ function startDrawing(e: MouseEvent) {
 // Function to draw sticker preview separately
 function drawStickerPreview(x: number, y: number, sticker: string) {
     if (stickerPreviewCommand && isStickerButtonClicked) {
-        stickerPreviewCommand.execute({ x, y });
+        stickerPreviewCommand.execute(x, y);
     }
 }
+
+
 
 // Function to handle drawing on the canvas
 function draw(e: MouseEvent) {
@@ -137,8 +149,7 @@ function draw(e: MouseEvent) {
 		
 		// Execute the IncludeStickerCommand at the beginning of drawing
 		const includeStickerCommand = new IncludeStickerCommand(selectedSticker || "★", { x: 0, y: 0 });
-includeStickerCommand.execute({ x: 0, y: 0 }); // Pass initial position (it can be adjusted)
-
+		includeStickerCommand.execute({ x: 0, y: 0 }); // Pass initial position (it can be adjusted)
 		includeStickerCommand.execute({ x, y });
 	
     } else {
@@ -314,11 +325,14 @@ class ToolPreviewCommand {
     constructor(private x: number, private y: number, private sticker: string, private thickness: number) {}
 
     // Update the execute method to use the class properties
-    execute(cursorPosition: { x?: number; y?: number }) {
-        const { x = 0, y = 0 } = cursorPosition;
-        drawToolPreview(x, y, this.sticker);
+    execute(cursorX: number, cursorY: number) {
+        // Use the properties within the execute method to avoid TypeScript warnings
+        console.log(`x: ${this.x}, y: ${this.y}, thickness: ${this.thickness}`);
+        
+        drawToolPreview(cursorX, cursorY, this.sticker);
     }
 }
+
 
 // Function to clear the tool preview
 function clearToolPreview() {
@@ -335,9 +349,10 @@ function handleToolMove(e: MouseEvent) {
         // Update the tool preview position
         clearToolPreview();
         const toolPreviewCommand = new ToolPreviewCommand(x, y, "★", currentMarkerThickness);
-        toolPreviewCommand.execute({ x, y });
+        toolPreviewCommand.execute(x, y);  // Provide the necessary arguments
     }
 }
+
 
 // Step 8: Emoji Unicode character codes for stickers
 const stickerCodes = ["😸", "😹", "😻"];
@@ -366,7 +381,6 @@ function handleStickerClick(sticker: string) {
         // Execute the IncludeStickerCommand at the beginning of drawing
 		const includeStickerCommand = new IncludeStickerCommand(selectedSticker || "★", { x: 0, y: 0 });
 		includeStickerCommand.execute({ x: 0, y: 0 }); // Pass initial position (it can be adjusted)
-
     }
 
     // Set isStickerButtonClicked to true when the sticker button is clicked
@@ -393,20 +407,20 @@ class IncludeStickerCommand {
     }
 
     drag(cursorPosition: { x: number; y: number }) {
-		// Check if ctx is not null before using it
-		if (ctx) {
-			// Clear the canvas and redraw all marker lines with the currentMarkerThickness
-			ctx.clearRect(ZERO, ZERO, canvas.width, canvas.height);
-			for (const line of markerLines) {
-				line.display(ctx);
-			}
-	
-			// Draw the sticker at the new position during drag
-			drawSticker(cursorPosition.x, cursorPosition.y, this.sticker);
-		}
-	}
-	
+        // Check if ctx is not null before using it
+        if (ctx) {
+            // Clear the canvas and redraw all marker lines with the currentMarkerThickness
+            ctx.clearRect(ZERO, ZERO, canvas.width, canvas.height);
+            for (const line of markerLines) {
+                line.display(ctx);
+            }
+
+            // Draw the sticker at the new position during drag
+            drawSticker(cursorPosition.x, cursorPosition.y, this.sticker);
+        }
+    }
 }
+
 
 // Function to create custom sticker at cursor position
 function createCustomStickerAtCursor(cursorPosition: { x: number; y: number }) {

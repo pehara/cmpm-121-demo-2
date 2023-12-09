@@ -473,3 +473,40 @@ function createCustomSticker() {
 		});
     }
 }
+
+// Step 10: Add an export button
+const exportButton: HTMLButtonElement = document.createElement("button");
+exportButton.textContent = "Export";
+exportButton.addEventListener("click", exportCanvas);
+buttonsContainer.append(exportButton);
+
+// Function to export the canvas as PNG
+function exportCanvas() {
+    if (!ctx) return;
+
+    // Create a temporary canvas with a larger size
+    const tempCanvas: HTMLCanvasElement = document.createElement("canvas");
+    tempCanvas.width = canvas.width * 4;
+    tempCanvas.height = canvas.height * 4;
+    const tempCtx: CanvasRenderingContext2D = tempCanvas.getContext("2d")!;
+
+    // Scale the context to match the temporary canvas size
+    tempCtx.scale(4, 4);
+
+    // Draw all marker lines on the temporary canvas
+    for (const line of markerLines) {
+        line.display(tempCtx);
+    }
+
+    // Draw all stickers on the temporary canvas
+    for (const sticker of drawnStickers) {
+        sticker.display(tempCtx);
+    }
+
+    // Trigger a file download with the contents of the temporary canvas as a PNG file
+    const dataURL = tempCanvas.toDataURL("image/png");
+    const link: HTMLAnchorElement = document.createElement("a");
+    link.href = dataURL;
+    link.download = "exported_canvas.png";
+    link.click();
+}

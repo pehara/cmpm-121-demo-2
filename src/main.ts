@@ -2,38 +2,39 @@ import "./style.css";
 
 // Modified the MarkerLine class to accept a thickness parameter
 class MarkerLine {
-  private points: Array<{ x: number; y: number }> = [];
-  private thickness: number;
+	private points: Array<{ x: number; y: number }> = [];
+	private thickness: number;
 
-  constructor(initialPoint: { x: number; y: number }, thickness: number) {
-    this.points.push(initialPoint);
-    this.thickness = thickness;
-  }
+	constructor(initialPoint: { x: number; y: number }, thickness: number) {
+		this.points.push(initialPoint);
+		this.thickness = thickness;
+	}
 
-  drag(x: number, y: number) {
-    // Add a point to the line as the user drags the cursor
-    this.points.push({ x, y });
-  }
+	drag(x: number, y: number) {
+		// Add a point to the line as the user drags the cursor
+		this.points.push({ x, y });
+	}
 
-  display(ctx: CanvasRenderingContext2D) {
-    // Display the line on the canvas
-    if (this.points.length > 1) {
-      ctx.beginPath();
-      ctx.moveTo(this.points[0].x, this.points[0].y);
+	display(ctx: CanvasRenderingContext2D) {
+		// Display the line on the canvas
+		if (this.points.length > 1) {
+		ctx.beginPath();
+		ctx.moveTo(this.points[0].x, this.points[0].y);
 
-      // Set the line thickness based on the provided thickness
-      ctx.lineWidth = this.thickness;
+		// Set the line thickness based on the provided thickness
+		ctx.lineWidth = this.thickness;
 
-      for (const point of this.points) {
-        ctx.lineTo(point.x, point.y);
-      }
+		for (const point of this.points) {
+			ctx.lineTo(point.x, point.y);
+		}
 
-      ctx.stroke();
-    }
-  }
+		ctx.stroke();
+		}
+	}
 }
 
 const app: HTMLDivElement = document.querySelector("#app")!;
+
 
 // Step 0
 
@@ -72,38 +73,52 @@ let isDrawing: boolean = false;
 // Save the user's marker lines into an array
 const markerLines: MarkerLine[] = [];
 
+// Step 6
+// Variable to store the current marker thickness
+let currentMarkerThickness: 1 | 2 = 1;
+
+// Variable to store the tool preview
+let toolPreview: MarkerLine | null = null;
+
 // Allow the user to draw on the canvas using mouse events and save points
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", draw);
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseout", stopDrawing);
+canvas.addEventListener("mousemove", handleToolMove); // New event listener for tool preview
+
 
 function startDrawing(e: MouseEvent) {
-  isDrawing = true;
+	isDrawing = true;
 
-  const x = e.clientX - canvas.offsetLeft;
-  const y = e.clientY - canvas.offsetTop;
+	const x = e.clientX - canvas.offsetLeft;
+	const y = e.clientY - canvas.offsetTop;
 
-  // Create a new MarkerLine and add it to the array
-  const newMarkerLine = new MarkerLine({ x, y }, currentMarkerThickness);
-  markerLines.push(newMarkerLine);
+	// Create a new MarkerLine and add it to the array
+	const newMarkerLine = new MarkerLine({ x, y }, currentMarkerThickness);
+	markerLines.push(newMarkerLine);
 }
 
 function draw(e: MouseEvent) {
-  if (!isDrawing || !ctx) return;
+	if (!isDrawing || !ctx) return;
 
-  const x = e.clientX - canvas.offsetLeft;
-  const y = e.clientY - canvas.offsetTop;
+	const x = e.clientX - canvas.offsetLeft;
+	const y = e.clientY - canvas.offsetTop;
 
-  // Drag the last marker line as the user moves the cursor
-  markerLines[markerLines.length - 1].drag(x, y);
+	// Drag the last marker line as the user moves the cursor
+	markerLines[markerLines.length - 1].drag(x, y);
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Redraw all marker lines with the currentMarkerThickness
-  for (const line of markerLines) {
-    line.display(ctx);
-  }
+	// Redraw all marker lines with the currentMarkerThickness
+    for (const line of markerLines) {
+        line.display(ctx!);
+    }
+
+    // Draw the tool preview if the mouse is not down
+    if (!isDrawing) {
+        drawToolPreview(x, y);
+    }
 }
 
 function stopDrawing() {
@@ -111,10 +126,10 @@ function stopDrawing() {
 }
 
 function clearCanvas() {
-  if (!ctx) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  markerLines.length = 0; // Clear the array of marker lines
-  canvas.dispatchEvent(new Event("drawing-changed")); // Dispatch the "drawing-changed" event
+	if (!ctx) return;
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	markerLines.length = 0; // Clear the array of marker lines
+	canvas.dispatchEvent(new Event("drawing-changed")); // Dispatch the "drawing-changed" event
 }
 
 // Step 3
@@ -123,13 +138,13 @@ function clearCanvas() {
 canvas.addEventListener("drawing-changed", updateCanvas);
 
 function updateCanvas() {
-  if (!ctx) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+	if (!ctx) return;
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Redraw all marker lines
-  for (const line of markerLines) {
-    line.display(ctx);
-  }
+	// Redraw all marker lines
+	for (const line of markerLines) {
+		line.display(ctx);
+	}
 }
 
 // Step 4
@@ -197,18 +212,41 @@ thickButton.textContent = "Thick";
 thickButton.addEventListener("click", () => setMarkerThickness(2));
 buttonsContainer.append(thickButton);
 
-// Variable to store the current marker thickness
-let currentMarkerThickness: 1 | 2 = 1;
+// // Variable to store the current marker thickness
+// let currentMarkerThickness: 1 | 2 = 1;
 
 function setMarkerThickness(thickness: 1 | 2) {
-  currentMarkerThickness = thickness;
+	currentMarkerThickness = thickness;
 
-  // Optionally, add a class to indicate the selected tool
-  thinButton.classList.remove("selectedTool");
-  thickButton.classList.remove("selectedTool");
-  if (thickness === 1) {
-    thinButton.classList.add("selectedTool");
-  } else {
-    thickButton.classList.add("selectedTool");
-  }
+	// Indicate the selected tool
+	thinButton.classList.remove("selectedTool");
+	thickButton.classList.remove("selectedTool");
+	if (thickness === 1) {
+		thinButton.classList.add("selectedTool");
+	} else {
+		thickButton.classList.add("selectedTool");
+	}
+}
+
+// Step 6
+
+function drawToolPreview(x: number, y: number) {
+    // Draw the tool preview using the currentMarkerThickness
+    toolPreview = new MarkerLine({ x, y }, currentMarkerThickness);
+    toolPreview.display(ctx!);
+}
+
+function clearToolPreview() {
+    // Clear the tool preview
+    toolPreview = null;
+    updateCanvas();
+}
+
+function handleToolMove(e: MouseEvent) {
+    if (!isDrawing) {
+        clearToolPreview();
+        const x = e.clientX - canvas.offsetLeft;
+        const y = e.clientY - canvas.offsetTop;
+        drawToolPreview(x, y);
+    }
 }

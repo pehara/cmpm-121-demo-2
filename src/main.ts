@@ -72,11 +72,11 @@ class MarkerLine {
 // Select the app container and set initial constants
 const app: HTMLDivElement = document.querySelector("#app")!;
 const INITIAL_MARKER_LINES_LENGTH = 0;
-const THIN_MARKER_THICKNESS = 1;
-const THICK_MARKER_THICKNESS = 2;
+// const THIN_MARKER_THICKNESS = 1;
+// const THICK_MARKER_THICKNESS = 2;
 
 // Step 0: Set the game name and update the document title
-const gameName = "drawing hehe";
+const gameName = "drawing app";
 document.title = gameName;
 
 // Create and append the header element
@@ -100,8 +100,8 @@ let isDrawing = false;
 const markerLines: MarkerLine[] = [];
 
 // Step 6: Constants for marker thickness
-const THIN_MARKER = 1 as const;
-const THICK_MARKER = 2 as const;
+const THIN_MARKER = 3 as const;
+const THICK_MARKER = 10 as const;
 let currentMarkerThickness: typeof THIN_MARKER | typeof THICK_MARKER = THIN_MARKER;
 let selectedSticker: string | null = null;
 let isStickerButtonClicked = false;
@@ -277,28 +277,28 @@ function clearDrawing() {
 
 // Step 6: Add thin and thick marker buttons
 const thinButton: HTMLButtonElement = document.createElement("button");
-thinButton.textContent = "Thin";
+thinButton.textContent = "★ Thin Brush";
 thinButton.addEventListener("click", () => {
-    setMarkerThickness(THIN_MARKER_THICKNESS);
+    setMarkerThickness(THIN_MARKER);
     isStickerButtonClicked = false;
 });
 buttonsContainer.append(thinButton);
 
 const thickButton: HTMLButtonElement = document.createElement("button");
-thickButton.textContent = "Thick";
+thickButton.textContent = "★ Thick Brush";
 thickButton.addEventListener("click", () => {
-    setMarkerThickness(THICK_MARKER_THICKNESS);
+    setMarkerThickness(THICK_MARKER);
     isStickerButtonClicked = false;
 });
 buttonsContainer.append(thickButton);
 
 // Function to set the marker thickness and indicate the selected tool
-function setMarkerThickness(thickness: 1 | 2) {
+function setMarkerThickness(thickness: 3 | 10) {
     currentMarkerThickness = thickness;
 
     thinButton.classList.remove("selectedTool");
     thickButton.classList.remove("selectedTool");
-    if (thickness === ONE) {
+    if (thickness === 3) {
         thinButton.classList.add("selectedTool");
     } else {
         thickButton.classList.add("selectedTool");
@@ -359,7 +359,7 @@ const stickerCodes = ["😸", "😹", "😻"];
 // Create buttons for each sticker and append them to the buttonsContainer
 for (let i = 0; i < stickerCodes.length; i++) {
     const stickerButton: HTMLButtonElement = document.createElement("button");
-    stickerButton.textContent = `Sticker ${i + 1}`;
+    stickerButton.textContent = `★ Cat Sticker ${i + 1}`;
     stickerButton.addEventListener("click", () => handleStickerClick(stickerCodes[i]));
     buttonsContainer.append(stickerButton);
 }
